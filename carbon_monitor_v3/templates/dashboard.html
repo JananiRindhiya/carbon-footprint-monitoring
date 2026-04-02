@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block page_title %}Dashboard{% endblock %}
+
+{% block content %}
+
+<!-- KPI Cards -->
+<div class="cards">
+  <div class="card">
+    <div class="label">Total CO₂ Emitted</div>
+    <div class="value">{{ total }}</div>
+    <div class="unit">kg CO₂</div>
+  </div>
+
+  {% for row in by_activity %}
+  <div class="card {{ 'orange' if row.activity == 'fuel' else ('blue' if row.activity == 'transport' else ('purple' if row.activity == 'waste' else '')) }}">
+    <div class="label">{{ row.activity | capitalize }}</div>
+    <div class="value">{{ "%.1f" | format(row.total) }}</div>
+    <div class="unit">kg CO₂</div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Charts -->
+<div class="charts-row">
+  <div class="chart-box">
+    <h3>📊 Emission by Activity Source</h3>
+    <canvas id="barChart" height="200"></canvas>
+  </div>
+  <div class="chart-box">
+    <h3>📈 Monthly Trend</h3>
+    <canvas id="lineChart" height="200"></canvas>
+  </div>
+</div>
+
+<!-- Recent Records -->
+<div class="table-box">
+  <h3>
+    🕒 Recent Activities
+    <div style="display:flex;gap:8px;">
+      <a href="/recommendations" class="btn btn-outline"   style="font-size:12px;padding:7px 16px;">💡 Recommendations</a>
+      <a href="/add"             class="btn btn-primary"   style="font-size:12px;padding:7px 16px;">+ Add New</a>
+    </div>
+  </h3>
+  {% if recent %}
+  <table>
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Activity</th>
+        <th>Value</th>
+        <th>CO₂ (kg)</th>
+        <th>Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in recent %}
+      <tr>
+        <td>{{ r.date }}</td>
+        <td><span class="badge-activity badge-{{ r.activity }}">{{ r.activity | capitalize }}</span></td>
+        <td>{{ r.value }} {{ r.unit }}</td>
+        <td><strong>{{ r.co2_kg }}</strong></td>
+        <td style="color:#64748b;font-size:12px;">{{ r.notes or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  <div style="margin-top:12px;">
+    <a href="/records" class="btn btn-outline" style="font-size:12px;padding:7px 16px;">View All Records →</a>
+  </div>
+  {% else %}
+  <div class="alert-box">
+    No data yet. <a href="/add" style="color:#2c5f2d;font-weight:600;">Add your first activity →</a>
+  </div>
+  {% endif %}
+</div>
+
+<script>
+  fetch('/api/chart-data').then(r => r.json()).then(data => {
+
+    // Bar Chart
+    new Chart(document.getElementById('barChart'), {
+      type: 'bar',
+      data: {
+        labels: data.by_activity.labels,
+        datasets: [{
+          label: 'kg CO₂',
+          data: data.by_activity.values,
+          backgroundColor: ['#2c5f2d','#1a5276','#6d2e46','#b85c00'],
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: '#e0ebe0' }, ticks: { color: '#64748b' } },
+          x: { grid: { display: false }, ticks: { color: '#64748b' } }
+        }
+      }
+    });
+
+    // Line Chart
+    new Chart(document.getElementById('lineChart'), {
+      type: 'line',
+      data: {
+        labels: data.monthly.labels,
+        datasets: [{
+          label: 'kg CO₂',
+          data: data.monthly.values,
+          borderColor: '#2c5f2d',
+          backgroundColor: 'rgba(44,95,45,0.1)',
+          fill: true,
+          tension: 0.4,
+          pointBackgroundColor: '#2c5f2d',
+          pointRadius: 5,
+        }]
+      },
+      options: {
+        plugins: { legend: { display: false } },
+        scales: {
+          y: { grid: { color: '#e0ebe0' }, ticks: { color: '#64748b' } },
+          x: { grid: { display: false }, ticks: { color: '#64748b' } }
+        }
+      }
+    });
+
+  });
+</script>
+
+{% endblock %}

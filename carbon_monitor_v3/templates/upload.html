@@ -1,0 +1,263 @@
+{% extends "base.html" %}
+{% block page_title %}Upload File{% endblock %}
+
+{% block content %}
+
+<style>
+  .upload-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+
+  .upload-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+
+  .upload-box h2 { font-size: 17px; color: #1a3c34; margin-bottom: 6px; }
+  .upload-box p  { font-size: 13px; color: #64748b; margin-bottom: 22px; }
+
+  /* Drop zone */
+  .drop-zone {
+    border: 2.5px dashed #97bc62;
+    border-radius: 10px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    background: #f8fbf8;
+    position: relative;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    background: #eef7ee;
+    border-color: #2c5f2d;
+  }
+
+  .drop-zone input[type=file] {
+    position: absolute; inset: 0;
+    opacity: 0; cursor: pointer; width: 100%; height: 100%;
+  }
+
+  .drop-zone .dz-icon  { font-size: 42px; margin-bottom: 10px; }
+  .drop-zone .dz-label { font-size: 14px; font-weight: 600; color: #2c5f2d; }
+  .drop-zone .dz-sub   { font-size: 12px; color: #64748b; margin-top: 4px; }
+  .drop-zone .dz-name  { font-size: 13px; color: #1a3c34; margin-top: 10px; font-weight: 600; display: none; }
+
+  .format-badges { display: flex; gap: 8px; justify-content: center; margin-top: 12px; }
+  .format-badge  {
+    background: #eef7ee; color: #2c5f2d;
+    border: 1px solid #97bc62;
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* Result boxes */
+  .result-success { background: #eef7ee; border: 1.5px solid #97bc62; border-radius: 8px; padding: 18px; }
+  .result-warning { background: #fef9e7; border: 1.5px solid #f0c040; border-radius: 8px; padding: 18px; }
+  .result-error   { background: #fdecea; border: 1.5px solid #e74c3c; border-radius: 8px; padding: 18px; }
+
+  .result-icon  { font-size: 28px; margin-bottom: 8px; }
+  .result-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+  .result-stats { display: flex; gap: 24px; margin: 12px 0; }
+  .stat-item    { text-align: center; }
+  .stat-val     { font-size: 26px; font-weight: 700; color: #2c5f2d; }
+  .stat-lbl     { font-size: 11px; color: #64748b; margin-top: 2px; }
+
+  .error-list   { font-size: 12px; color: #c0392b; margin-top: 10px; }
+  .error-list li { margin-bottom: 4px; }
+
+  /* Template download */
+  .template-box {
+    background: #fff;
+    border-radius: 10px;
+    padding: 24px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+  }
+
+  .template-box h3 { font-size: 15px; color: #1a3c34; margin-bottom: 6px; }
+  .template-box p  { font-size: 12px; color: #64748b; margin-bottom: 16px; }
+
+  .download-btns { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  .dl-btn {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 18px;
+    border-radius: 7px;
+    text-decoration: none;
+    font-size: 13px; font-weight: 600;
+    border: 1.5px solid;
+    transition: all 0.2s;
+  }
+  .dl-csv  { color: #2c5f2d; border-color: #97bc62; background: #f4faf4; }
+  .dl-csv:hover  { background: #2c5f2d; color: #fff; }
+  .dl-xlsx { color: #1a5276; border-color: #7fb3d3; background: #f0f8ff; }
+  .dl-xlsx:hover { background: #1a5276; color: #fff; }
+
+  .col-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 14px; }
+  .col-table th { background: #f0f4f0; color: #2c5f2d; padding: 8px 10px; text-align: left; font-size: 11px; }
+  .col-table td { padding: 8px 10px; border-bottom: 1px solid #f0f4f0; color: #334155; }
+  .col-table code { background: #eef7ee; color: #2c5f2d; padding: 1px 6px; border-radius: 4px; font-size: 11px; }
+
+  @media (max-width: 800px) { .upload-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="upload-grid">
+
+  <!-- LEFT: Upload Form -->
+  <div>
+    <div class="upload-box">
+      <h2>📂 Upload Emission Data</h2>
+      <p>Upload a CSV or Excel file to bulk-import multiple activity records at once.</p>
+
+      <!-- Result Banner -->
+      {% if result %}
+        {% if result.status == 'success' %}
+        <div class="result-success" style="margin-bottom:20px;">
+          <div class="result-icon">✅</div>
+          <div class="result-title">Upload Successful!</div>
+          <div style="font-size:13px;color:#2c5f2d;">File: <strong>{{ result.filename }}</strong></div>
+          <div class="result-stats">
+            <div class="stat-item">
+              <div class="stat-val">{{ result.inserted }}</div>
+              <div class="stat-lbl">Rows Imported</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-val" style="color:#b85c00;">{{ result.skipped }}</div>
+              <div class="stat-lbl">Rows Skipped</div>
+            </div>
+          </div>
+          <a href="/dashboard" class="btn btn-primary" style="font-size:12px;padding:8px 16px;">View Dashboard →</a>
+        </div>
+
+        {% elif result.status == 'warning' %}
+        <div class="result-warning" style="margin-bottom:20px;">
+          <div class="result-icon">⚠️</div>
+          <div class="result-title">Partial Import</div>
+          <div class="result-stats">
+            <div class="stat-item"><div class="stat-val">{{ result.inserted }}</div><div class="stat-lbl">Imported</div></div>
+            <div class="stat-item"><div class="stat-val" style="color:#b85c00;">{{ result.skipped }}</div><div class="stat-lbl">Skipped</div></div>
+          </div>
+          {% if result.errors %}
+          <ul class="error-list">
+            {% for e in result.errors %}<li>{{ e }}</li>{% endfor %}
+            {% if result.skipped > 5 %}<li>...and {{ result.skipped - 5 }} more</li>{% endif %}
+          </ul>
+          {% endif %}
+        </div>
+
+        {% else %}
+        <div class="result-error" style="margin-bottom:20px;">
+          <div class="result-icon">❌</div>
+          <div class="result-title">Upload Failed</div>
+          <div style="font-size:13px;color:#c0392b;">{{ result.message }}</div>
+        </div>
+        {% endif %}
+      {% endif %}
+
+      <!-- Upload Form -->
+      <form method="POST" enctype="multipart/form-data" id="upload-form">
+        <div class="drop-zone" id="drop-zone">
+          <input type="file" name="file" id="file-input" accept=".csv,.xlsx" required
+                 onchange="showFilename(this)"/>
+          <div class="dz-icon">📁</div>
+          <div class="dz-label">Click to choose file or drag & drop</div>
+          <div class="dz-sub">Supports CSV and Excel (.xlsx)</div>
+          <div class="dz-name" id="file-name-display"></div>
+          <div class="format-badges">
+            <span class="format-badge">📄 .csv</span>
+            <span class="format-badge">📊 .xlsx</span>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;margin-top:16px;padding:12px;">
+          ⬆️ Upload & Import
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- RIGHT: Template & Instructions -->
+  <div style="display:flex;flex-direction:column;gap:20px;">
+
+    <!-- Download Templates -->
+    <div class="template-box">
+      <h3>⬇️ Download Sample Template</h3>
+      <p>Use these templates as a starting point. Fill in your data and upload.</p>
+      <div class="download-btns">
+        <a href="/download-template/csv"  class="dl-btn dl-csv">📄 Download CSV Template</a>
+        <a href="/download-template/xlsx" class="dl-btn dl-xlsx">📊 Download Excel Template</a>
+      </div>
+    </div>
+
+    <!-- Column Guide -->
+    <div class="template-box">
+      <h3>📋 Required Column Format</h3>
+      <p>Your file must have these 4 columns (header row required):</p>
+      <table class="col-table">
+        <thead>
+          <tr><th>Column</th><th>Description</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>date</code></td>
+            <td>Date of activity</td>
+            <td>2026-03-01</td>
+          </tr>
+          <tr>
+            <td><code>activity</code></td>
+            <td>Type of emission source</td>
+            <td>electricity / fuel / transport / waste</td>
+          </tr>
+          <tr>
+            <td><code>value</code></td>
+            <td>Quantity (number)</td>
+            <td>120.5</td>
+          </tr>
+          <tr>
+            <td><code>notes</code></td>
+            <td>Description (optional)</td>
+            <td>Lab cooling system</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Emission factors reminder -->
+      <div style="margin-top:16px;background:#f0f4f0;border-radius:7px;padding:12px;">
+        <div style="font-size:11px;font-weight:700;color:#2c5f2d;margin-bottom:6px;">⚙️ EMISSION FACTORS USED</div>
+        <div style="font-size:11px;color:#334155;display:grid;grid-template-columns:1fr 1fr;gap:4px;">
+          <span>⚡ Electricity → 0.82 kg CO₂/kWh</span>
+          <span>⛽ Fuel → 2.31 kg CO₂/litre</span>
+          <span>🚗 Transport → 0.21 kg CO₂/km</span>
+          <span>🗑️ Waste → 0.50 kg CO₂/kg</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  function showFilename(input) {
+    const display = document.getElementById('file-name-display');
+    if (input.files && input.files[0]) {
+      display.textContent = '📄 ' + input.files[0].name;
+      display.style.display = 'block';
+    }
+  }
+
+  // Drag & drop visual feedback
+  const zone = document.getElementById('drop-zone');
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop',      e => {
+    e.preventDefault();
+    zone.classList.remove('dragover');
+    const fi = document.getElementById('file-input');
+    fi.files = e.dataTransfer.files;
+    showFilename(fi);
+  });
+</script>
+
+{% endblock %}

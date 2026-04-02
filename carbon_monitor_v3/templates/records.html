@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block page_title %}All Records{% endblock %}
+
+{% block content %}
+
+<div class="table-box">
+  <h3>
+    📋 All Emission Records
+    <a href="/add" class="btn btn-primary" style="font-size:12px;padding:7px 16px;">+ Add New</a>
+  </h3>
+
+  {% if records %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Date</th>
+        <th>Activity</th>
+        <th>Value</th>
+        <th>CO₂ Emitted (kg)</th>
+        <th>Notes</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for r in records %}
+      <tr>
+        <td style="color:#64748b;">{{ r.id }}</td>
+        <td>{{ r.date }}</td>
+        <td><span class="badge-activity badge-{{ r.activity }}">{{ r.activity | capitalize }}</span></td>
+        <td>{{ r.value }} {{ r.unit }}</td>
+        <td><strong style="color:#2c5f2d;">{{ r.co2_kg }}</strong></td>
+        <td style="color:#64748b;font-size:12px;">{{ r.notes or '—' }}</td>
+        <td>
+          <form method="POST" action="/delete/{{ r.id }}" onsubmit="return confirm('Delete this record?')">
+            <button type="submit" class="btn btn-danger">🗑 Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="alert-box">
+    No records found. <a href="/add" style="color:#2c5f2d;font-weight:600;">Add your first activity →</a>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

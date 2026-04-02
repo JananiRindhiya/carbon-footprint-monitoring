@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block page_title %}Add Activity{% endblock %}
+
+{% block content %}
+
+<div class="form-box">
+  <h2>➕ Log a New Emission Activity</h2>
+
+  <form method="POST" action="/add">
+
+    <div class="form-group">
+      <label for="activity">Activity Type</label>
+      <select name="activity" id="activity" required onchange="updateHint()">
+        <option value="">-- Select Activity --</option>
+        <option value="electricity">⚡ Electricity Consumption</option>
+        <option value="fuel">⛽ Fuel Usage</option>
+        <option value="transport">🚗 Transportation</option>
+        <option value="waste">🗑️ Waste Generation</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="value">Activity Value</label>
+      <input type="number" name="value" id="value" step="0.01" min="0" placeholder="Enter amount" required oninput="calcPreview()"/>
+      <div class="form-hint" id="unit-hint">Select an activity type first</div>
+    </div>
+
+    <div id="preview-box">
+      Estimated CO₂ emission: <strong id="co2-preview">0</strong> kg CO₂
+    </div>
+
+    <div class="form-group" style="margin-top:18px;">
+      <label for="date">Date</label>
+      <input type="date" name="date" id="date" value="{{ today }}" required />
+    </div>
+
+    <div class="form-group">
+      <label for="notes">Notes <span style="font-weight:400;color:#64748b;">(optional)</span></label>
+      <textarea name="notes" id="notes" rows="2" placeholder="e.g. Lab cooling system, field trip..."></textarea>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:8px;">
+      <button type="submit" class="btn btn-primary">✅ Save Activity</button>
+      <a href="/dashboard" class="btn btn-outline">Cancel</a>
+    </div>
+
+  </form>
+</div>
+
+<script>
+  const factors = {
+    electricity: { unit: 'kWh',    factor: 0.82,  hint: 'Enter electricity used in kilowatt-hours (kWh)' },
+    fuel:        { unit: 'Litres', factor: 2.31,  hint: 'Enter fuel consumed in litres' },
+    transport:   { unit: 'km',     factor: 0.21,  hint: 'Enter distance travelled in kilometres (km)' },
+    waste:       { unit: 'kg',     factor: 0.50,  hint: 'Enter waste generated in kilograms (kg)' },
+  };
+
+  function updateHint() {
+    const act = document.getElementById('activity').value;
+    const hint = document.getElementById('unit-hint');
+    const val  = document.getElementById('value');
+    if (act && factors[act]) {
+      hint.textContent = factors[act].hint;
+      val.placeholder  = `Enter value in ${factors[act].unit}`;
+    } else {
+      hint.textContent = 'Select an activity type first';
+    }
+    calcPreview();
+  }
+
+  function calcPreview() {
+    const act = document.getElementById('activity').value;
+    const val = parseFloat(document.getElementById('value').value);
+    const box = document.getElementById('preview-box');
+    const out = document.getElementById('co2-preview');
+
+    if (act && factors[act] && !isNaN(val) && val > 0) {
+      const co2 = (val * factors[act].factor).toFixed(4);
+      out.textContent = co2;
+      box.style.display = 'block';
+    } else {
+      box.style.display = 'none';
+    }
+  }
+</script>
+
+{% endblock %}
