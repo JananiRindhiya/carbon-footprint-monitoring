@@ -1,5 +1,5 @@
 # 🌿 Carbon Footprint Monitoring System
-### IPRC Activities | NCCEE-26 Project
+### IPRC Activities | 
 
 ---
 
